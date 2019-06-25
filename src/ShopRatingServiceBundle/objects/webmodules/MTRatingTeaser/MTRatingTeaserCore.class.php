@@ -16,7 +16,7 @@
 class MTRatingTeaserCore extends TUserCustomModelBase
 {
     /**
-     * @var null|TdbPkgShopRatingServiceTeaserCnf
+     * @var TdbPkgShopRatingServiceTeaserCnf|null
      */
     protected $oModuleConfig = null;
 
@@ -35,104 +35,9 @@ class MTRatingTeaserCore extends TUserCustomModelBase
     }
 
     /**
-     * @param int $iCountMax
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function SetNumberOfHintsToCache($iCountMax)
-    {
-    }
-
-    /**
-     * return number of records from which to choose the random teaser from cache
-     * returns false if the data is not in cache.
-     *
-     * @return int|bool
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetNumberOfHitsFromCache()
-    {
-        return false;
-    }
-
-    /**
-     * @param string $sCachedItem
-     * @param int    $iItemPosition
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function SetCachedItemForPosition($sCachedItem, $iItemPosition)
-    {
-    }
-
-    /**
-     * Get trigger to reset cache.
-     *
-     * @return array
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetMainTrigger()
-    {
-        return array(
-            array(
-                'table' => 'pkg_shop_rating_sevice_rating',
-                'id' => '',
-            ),
-            array(
-                'table' => 'pkg_shop_rating_service_teaser_cnf',
-                'id' => $this->oModuleConfig->id,
-            ),
-        );
-    }
-
-    /**
-     * @param int $iItemPosition
-     *
-     * @return bool
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetCachedItemForPosition($iItemPosition)
-    {
-        return false;
-    }
-
-    /**
-     * Get cache-key for max hint value.
-     *
-     * @return string
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetCacheKeyForMaxHints()
-    {
-        $aKey = array('class' => __CLASS__, 'valueName' => 'NumberOfHitsFromCache');
-
-        return TCacheManager::GetKey($aKey);
-    }
-
-    /**
-     * Get cache-key for item position.
-     *
-     * @param $iItemPosition
-     *
-     * @return string
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetCacheKeyForPosition($iItemPosition)
-    {
-        $aKey = array('class' => __CLASS__, 'valueName' => 'Item', 'position' => $iItemPosition);
-
-        return TCacheManager::GetKey($aKey);
-    }
-
-    /**
      * Select one (random) rating item.
      *
-     * @return null|TdbPkgShopRatingServiceRating
+     * @return TdbPkgShopRatingServiceRating|null
      */
     protected function GetRatingItem()
     {
@@ -182,7 +87,7 @@ class MTRatingTeaserCore extends TUserCustomModelBase
     /**
      * loads config for instance.
      *
-     * @return null|TdbPkgShopRatingServiceTeaserCnf
+     * @return TdbPkgShopRatingServiceTeaserCnf|null
      */
     protected function GetModuleConfig()
     {

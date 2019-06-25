@@ -9,6 +9,9 @@
  * file that was distributed with this source code.
  */
 
+use ChameleonSystem\CoreBundle\ServiceLocator;
+use Psr\Log\LoggerInterface;
+
 class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
 {
     /**
@@ -76,10 +79,13 @@ class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
             }
             //$this->aCheckoutDetails
         }
+
+        $logger = $this->getPaypalLogger();
+
         if ($bResponse) {
             $oBasket = TShopBasket::GetInstance();
             // paypal expres success... redirect to confirm page. we need to force correct redirection here.
-            TTools::WriteLogEntry('PostProcessExternalPaymentHandlerHook: return from express ok - redirect to checkout', 4, __FILE__, __LINE__, self::LOG_FILE);
+            $logger->info('PostProcessExternalPaymentHandlerHook: return from express ok - redirect to checkout');
             $oNextStep = &TdbShopOrderStep::GetStep('confirm');
             $oStepList = TdbShopOrderStepList::GetNavigationStepList($oNextStep);
             $oStepList->GoToStart();
@@ -94,7 +100,7 @@ class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
             $oStepList->GoToStart();
             $oNextStep->JumpToStep($oNextStep);
         } else {
-            TTools::WriteLogEntry('PostProcessExternalPaymentHandlerHook: return from express NOT ok', 1, __FILE__, __LINE__, self::LOG_FILE);
+            $logger->error('PostProcessExternalPaymentHandlerHook: return from express NOT ok');
         }
 
         return $bResponse;
@@ -110,19 +116,11 @@ class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
     protected function GetUserDataFromPayPalData(&$aBilling, &$aShipping)
     {
         $sCountryIsoCode = 'de';
-        if (array_key_exists('COUNTRYCODE', $this->aCheckoutDetails)) {
-            $sCountryIsoCode = $this->aCheckoutDetails['COUNTRYCODE'];
-        } elseif (array_key_exists('SHIPTOCOUNTRYCODE', $this->aCheckoutDetails)) {
+        if (array_key_exists('SHIPTOCOUNTRYCODE', $this->aCheckoutDetails)) {
             $sCountryIsoCode = $this->aCheckoutDetails['SHIPTOCOUNTRYCODE'];
         }
-        $oUserCountry = TdbDataCountry::GetInstanceForIsoCode($sCountryIsoCode);
 
-        $sShippingCountryIsoCode = $sCountryIsoCode;
-        if (array_key_exists('SHIPTOCOUNTRYCODE', $this->aCheckoutDetails)) {
-            $sShippingCountryIsoCode = $this->aCheckoutDetails['SHIPTOCOUNTRYCODE'];
-        }
-
-        $oShippingCountry = TdbDataCountry::GetInstanceForIsoCode($sShippingCountryIsoCode);
+        $oShippingCountry = TdbDataCountry::GetInstanceForIsoCode($sCountryIsoCode);
 
         $sMail = (array_key_exists('EMAIL', $this->aCheckoutDetails)) ? $this->aCheckoutDetails['EMAIL'] : '';
         $sCompany = (array_key_exists('BUSINESS', $this->aCheckoutDetails)) ? $this->aCheckoutDetails['BUSINESS'] : '';
@@ -136,7 +134,7 @@ class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
         $sTelefon = (array_key_exists('PHONENUM', $this->aCheckoutDetails)) ? $this->aCheckoutDetails['PHONENUM'] : '';
         $addressAdditionalInfo = (array_key_exists('SHIPTOSTREET2', $this->aCheckoutDetails)) ? $this->aCheckoutDetails['SHIPTOSTREET2'] : '';
 
-        $aBilling = array('name' => $sMail, 'email' => $sMail, 'company' => $sCompany, 'data_extranet_salutation_id' => '', 'firstname' => $sFirstname, 'lastname' => $sLastname, 'street' => $sStreet, 'streenr' => '', 'city' => $sCity, 'postalcode' => $sPostalcode, 'telefon' => $sTelefon, 'fax' => '', 'data_country_id' => $oUserCountry->id, 'address_additional_info' => $addressAdditionalInfo);
+        $aBilling = array('name' => $sMail, 'email' => $sMail, 'company' => $sCompany, 'data_extranet_salutation_id' => '', 'firstname' => $sFirstname, 'lastname' => $sLastname, 'street' => $sStreet, 'streenr' => '', 'city' => $sCity, 'postalcode' => $sPostalcode, 'telefon' => $sTelefon, 'fax' => '', 'data_country_id' => $oShippingCountry->id, 'address_additional_info' => $addressAdditionalInfo);
 
         $sShippingLastName = (array_key_exists('SHIPTONAME', $this->aCheckoutDetails) && '' != $this->aCheckoutDetails['SHIPTONAME']) ? $this->aCheckoutDetails['SHIPTONAME'] : $sFirstname.' '.$sLastname;
 
@@ -184,5 +182,10 @@ class TShopPaymentHandlerPayPalExpress extends TShopPaymentHandlerPayPal
         }
 
         return false;
+    }
+
+    private function getPaypalLogger(): LoggerInterface
+    {
+        return ServiceLocator::get('monolog.logger.order');
     }
 }

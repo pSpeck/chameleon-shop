@@ -7,6 +7,7 @@
         <service id="chameleon_system_shop.mapper.shop_address" class="TPkgShopMapper_ShopAddress">
             <argument type="service" id="chameleon_system_core.portal_domain_service" />
             <argument type="service" id="chameleon_system_shop.shop_service" />
+            <argument type="service" id="chameleon_system_core.page_service"/>
         </service>
 
         <service id="chameleon_system_shop.mapper.shop_central_handler" class="TPkgShopMapper_ShopCentralHandler">
@@ -88,6 +89,9 @@
         </service>
 
         <service id="chameleon_system_shop.mapper.objects.article_list.item_mapper_standard" class="ChameleonSystem\ShopBundle\objects\ArticleList\Mapper\ItemMapperStandard">
+        </service>
+
+        <service id="chameleon_system_shop.mapper.view_my_order_details.view_my_order_details_order_object_as_string" class="MTShopViewMyOrderDetailsOrderObjectAsStringMapper">
         </service>
     </services>
 </container>

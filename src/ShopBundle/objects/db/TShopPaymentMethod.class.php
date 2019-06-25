@@ -13,6 +13,7 @@ use ChameleonSystem\CoreBundle\Service\PortalDomainServiceInterface;
 use ChameleonSystem\ShopBundle\Exception\ConfigurationException;
 use ChameleonSystem\ShopBundle\Interfaces\DataAccess\PaymentMethodDataAccessInterface;
 use ChameleonSystem\ShopBundle\Payment\PaymentHandler\Interfaces\ShopPaymentHandlerFactoryInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * represents a payment method the user can choose from. it uses a payment handler to gather payment infos
@@ -66,19 +67,6 @@ class TShopPaymentMethod extends TShopPaymentMethodAutoParent implements IPkgSho
     }
 
     /**
-     * return payment handler for method
-     * Note: you should NOT use this function - use GetFieldShopPaymentHandler instead! this method is outdated!
-     *
-     * @deprecated
-     *
-     * @return TdbShopPaymentHandler
-     */
-    public function &GetPaymentHandler()
-    {
-        return $this->GetFieldShopPaymentHandler();
-    }
-
-    /**
      * Paymenthandler.
      *
      * @return TdbShopPaymentHandler
@@ -96,8 +84,13 @@ class TShopPaymentMethod extends TShopPaymentMethodAutoParent implements IPkgSho
             try {
                 $this->oPaymentHandler = $this->getShopPaymentHandlerFactory()->createPaymentHandler($this->fieldShopPaymentHandlerId, $activePortal->id);
             } catch (ConfigurationException $e) {
-                $this->getLogger()->error('Unable to create payment handler: '.$e->getMessage(), __FILE__, __LINE__,
-                    array('paymentHandlerId' => $this->fieldShopPaymentHandlerId, 'portalId' => $activePortal->id));
+                $this->getLogger()->error(
+                    sprintf('Unable to create payment handler: %s', $e->getMessage()),
+                    [
+                        'paymentHandlerId' => $this->fieldShopPaymentHandlerId,
+                        'portalId' => $activePortal->id,
+                    ]
+                );
 
                 return $this->oPaymentHandler;
             }
@@ -543,12 +536,9 @@ class TShopPaymentMethod extends TShopPaymentMethodAutoParent implements IPkgSho
         return \ChameleonSystem\CoreBundle\ServiceLocator::get('chameleon_system_shop.payment.handler_factory');
     }
 
-    /**
-     * @return IPkgCmsCoreLog
-     */
-    private function getLogger()
+    private function getLogger(): LoggerInterface
     {
-        return \ChameleonSystem\CoreBundle\ServiceLocator::get('cmsPkgCore.logChannel.standard');
+        return \ChameleonSystem\CoreBundle\ServiceLocator::get('monolog.logger.order');
     }
 
     /**

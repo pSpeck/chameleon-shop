@@ -132,7 +132,7 @@ class TShopOrderStep extends TShopOrderStepAutoParent
             return new TdbShopOrderStep(null, $sLanguage);
         }
         if (null !== $sData && false == is_array($sData)) {
-            return TdbShopOrderStep::GetInstance($sData);
+            return TdbShopOrderStep::GetNewInstance($sData);
         }
 
         $class = 'TdbShopOrderStep';
@@ -153,7 +153,7 @@ class TShopOrderStep extends TShopOrderStepAutoParent
      * @param TShopBasket $basket
      * @param string      $classList comma seperated list of class names
      *
-     * @return null|TdbShopOrderStep
+     * @return TdbShopOrderStep|null
      */
     private static function createClass(TShopBasket $basket, $classList)
     {
@@ -168,21 +168,6 @@ class TShopOrderStep extends TShopOrderStepAutoParent
         }
 
         return null;
-    }
-
-    /**
-     * Returns the step with id sId requested but cased as the class type set in the step
-     * the first class defined in fieldClass which is applicable for the current basket will be instantiated and returned.
-     *
-     * @param string $sId
-     *
-     * @return TdbShopOrderStep|null
-     *
-     * @deprecated use GetNewInstance instead
-     */
-    public static function GetInstance($sId)
-    {
-        return TdbShopOrderStep::GetNewInstance($sId);
     }
 
     /**
@@ -572,7 +557,7 @@ class TShopOrderStep extends TShopOrderStepAutoParent
     }
 
     /**
-     * @return null|Request
+     * @return Request|null
      */
     private function getRequest()
     {

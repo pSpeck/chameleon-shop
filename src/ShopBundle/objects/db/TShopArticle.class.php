@@ -14,14 +14,15 @@ use ChameleonSystem\CoreBundle\Service\ActivePageServiceInterface;
 use ChameleonSystem\CoreBundle\Service\PortalDomainServiceInterface;
 use ChameleonSystem\CoreBundle\ServiceLocator;
 use ChameleonSystem\CoreBundle\Util\UrlNormalization\UrlNormalizationUtil;
-use ChameleonSystem\ShopBundle\Event\UpdateProductStockEvent;
 use ChameleonSystem\CoreBundle\Util\UrlUtil;
+use ChameleonSystem\ShopBundle\Event\UpdateProductStockEvent;
 use ChameleonSystem\ShopBundle\Interfaces\DataAccess\ShopStockMessageDataAccessInterface;
 use ChameleonSystem\ShopBundle\Interfaces\ShopServiceInterface;
 use ChameleonSystem\ShopBundle\ProductInventory\Interfaces\ProductInventoryServiceInterface;
 use ChameleonSystem\ShopBundle\ProductStatistics\Interfaces\ProductStatisticsServiceInterface;
 use ChameleonSystem\ShopBundle\ProductVariant\ProductVariantNameGeneratorInterface;
 use ChameleonSystem\ShopBundle\ShopEvents;
+use esono\pkgCmsCache\CacheInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -56,7 +57,7 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
     /**
      * used to store the pre-discounted price of the article.
      *
-     * @var null|array
+     * @var array|null
      */
     protected $aPriceBeforeDiscount = null;
 
@@ -226,7 +227,7 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
      * so we are falling back to the value from sqlData here
      * (this is a workaround chosen for simplicity, this would need to be changed in the table editor instead).
      *
-     * @return null|TdbShopVat
+     * @return TdbShopVat|null
      */
     private function getOwnVat()
     {
@@ -246,7 +247,7 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
      * return the link to the detail view of the product.
      *
      * @param bool                $bAbsolute           set to true to include the domain in the link
-     * @param null|string         $sAnchor
+     * @param string|null         $sAnchor
      * @param array               $aOptionalParameters supported optional parameters:
      *                                                 TdbShopArticle::CMS_LINKABLE_OBJECT_PARAM_CATEGORY - (string) force the article link to be within the given category id (only works if the category is assigned to the article)
      * @param TdbCmsPortal|null   $portal
@@ -406,7 +407,9 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
         $urlNormalizationUtil = $this->getUrlNormalizationUtil();
         $aNameParts[] = $urlNormalizationUtil->normalizeUrl($this->fieldName);
         $oManufacturer = $this->GetFieldShopManufacturer();
-        if (!is_null($oManufacturer)) {
+        if (is_null($oManufacturer)) {
+            $aParts[] = '-';
+        } else {
             $aParts[] = $urlNormalizationUtil->normalizeUrl($oManufacturer->fieldName);
         }
 
@@ -430,7 +433,9 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
         if (is_null($oCategory)) {
             $oCategory = &$this->GetPrimaryCategory();
         }
-        if (!is_null($oCategory)) {
+        if (is_null($oCategory)) {
+            $aParts[] = '-';
+        } else {
             $oRootCat = $oCategory->GetRootCategory();
             if ($oRootCat) {
                 $aParts[] = $urlNormalizationUtil->normalizeUrl($oRootCat->fieldName);
@@ -457,14 +462,16 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
             'catid' => $catId,
             'identifier' => $this->sqlData[PKG_SHOP_PRODUCT_URL_KEY_FIELD],
         );
+
         $router = $this->getFrontendRouter();
-        if ($bIncludePortalLink) {
-            $sProductLink = $router->generateWithPrefixes('shop_article', $parameters, $portal, $language, UrlGeneratorInterface::ABSOLUTE_URL);
+
+        if (true === $bIncludePortalLink) {
+            $referenceType = UrlGeneratorInterface::ABSOLUTE_URL;
         } else {
-            $sProductLink = $router->generateWithPrefixes('shop_article', $parameters, $portal, $language, UrlGeneratorInterface::ABSOLUTE_PATH);
+            $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH;
         }
 
-        return $sProductLink;
+        return $router->generateWithPrefixes('shop_article', $parameters, $portal, $language, $referenceType);
     }
 
     /**
@@ -558,25 +565,6 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
         $aParameters = $this->getToBasketLinkOtherParameters($aParameters);
 
         return $aParameters;
-    }
-
-    /**
-     * return link to send a friend form.
-     *
-     * @param string $sLinkText - the text to display in the link
-     * @param string $sCSSClass - the css classname of the a element
-     *
-     * @return string
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    public function GetSendAFriendLink($sLinkText, $sCSSClass = '')
-    {
-        $sLink = '';
-        $oShop = TdbShop::GetInstance();
-        $sLink = $oShop->GetLinkToSystemPageAsPopUp($sLinkText, 'tell-a-friend', array(MTShopArticleCatalogCore::URL_ITEM_ID => $this->id), false, 700, 450, $sCSSClass);
-
-        return $sLink;
     }
 
     /**
@@ -906,46 +894,6 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
     }
 
     /* SECTION: CACHE RELEVANT METHODS FOR THE RENDER METHOD
-
-    /**
-     * Add view based clear cache triggers for the Render method here
-     *
-     * @param array $aClearTriggers - clear trigger array (with current contents)
-     * @param string $sViewName - view being requested
-     * @param string $sViewType - location of the view (Core, Custom-Core, Customer)
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function AddClearCacheTriggers(&$aClearTriggers, $sViewName, $sViewType)
-    {
-        if (!empty($this->fieldShopUnitOfMeasurementId)) {
-            $aClearTriggers[] = array('table' => 'shop_unit_of_measurement', 'id' => $this->fieldShopUnitOfMeasurementId);
-        }
-    }
-
-    /**
-     * used to set the id of a clear cache (ie. related table).
-     *
-     * @param string $sTableName - the table name
-     *
-     * @return int|null|string
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetClearCacheTriggerTableValue($sTableName)
-    {
-        $sValue = '';
-        switch ($sTableName) {
-            case $this->table:
-                $sValue = $this->id;
-                break;
-
-            default:
-                break;
-        }
-
-        return $sValue;
-    }
 
     /**
      * returns an array with all table names that are relevant for the render function.
@@ -1323,27 +1271,6 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
     }
 
     /**
-     * returns the variant value set for this article as a string (if the article
-     * is a variant. returns empty string if not).
-     *
-     * @param bool $bAsURLName
-     *
-     * @return string
-     *
-     * @deprecated since 6.2.0 - use ProductVariantNameGenerator::generateName() instead.
-     */
-    public function GetVariantName($bAsURLName = false)
-    {
-        if (true === $bAsURLName) {
-            $nameType = ProductVariantNameGeneratorInterface::VARIANT_NAME_TYPE_URL;
-        } else {
-            $nameType = ProductVariantNameGeneratorInterface::VARIANT_NAME_TYPE_DEFAULT;
-        }
-
-        return $this->getProductVariantNameGenerator()->generateName($this, $nameType);
-    }
-
-    /**
      * return variant with the lowest price.
      *
      * @return TdbShopArticle
@@ -1448,7 +1375,7 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
      * @param TdbShopVariantType $oVariantType
      * @param array              $aSelectedTypeValues - restrict list to values matching this preselection (format: array(shop_variant_type_id=>shop_variant_type_value_id,...)
      *
-     * @return null|TdbShopVariantTypeValueList
+     * @return TdbShopVariantTypeValueList|null
      */
     public function GetVariantValuesAvailableForTypeIncludingInActive($oVariantType, $aSelectedTypeValues = array())
     {
@@ -1610,18 +1537,6 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
         }
 
         return $sHTML;
-    }
-
-    /**
-     * returns the variant set of the article (or its parent, if this is a variant).
-     *
-     * @return TdbShopVariantSet
-     *
-     * @deprecated You can use $this->GetFieldShopVariantSet() instead - it does the same thing
-     */
-    public function &GetVariantSet()
-    {
-        return $this->GetFieldShopVariantSet();
     }
 
     /**
@@ -1965,10 +1880,14 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
         }
         $activeValue = (true === $isActive) ? '1' : '0';
         $query = 'UPDATE shop_article SET `active` = :active WHERE id = :id';
-        $this->getDatabaseConnection()->executeUpdate($query, array('active' => $activeValue, 'id' => $this->id));
+        $affectedRows = $this->getDatabaseConnection()->executeUpdate($query, array('active' => $activeValue, 'id' => $this->id));
 
         $query = 'UPDATE shop_article SET variant_parent_is_active = :active WHERE variant_parent_id = :id';
         $this->getDatabaseConnection()->executeUpdate($query, array('active' => $activeValue, 'id' => $this->id));
+
+        if ($affectedRows > 0) {
+            $this->getCache()->callTrigger('shop_article', $this->id);
+        }
     }
 
     /**
@@ -1991,7 +1910,12 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
             'activeValue' => $activeValue,
             'parentId' => $parentId,
         );
-        $databaseConnection->executeUpdate($query, $parameters);
+        $affectedRows = $databaseConnection->executeUpdate($query, $parameters);
+
+        if ($affectedRows > 0) {
+            $this->getCache()->callTrigger('shop_article', $parentId);
+        }
+
         $this->UpdateVariantParentActiveField();
     }
 
@@ -2079,7 +2003,7 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
     /**
      * the method gets the shopstockmessage for the current article.
      *
-     * @return null|TdbShopStockMessage
+     * @return TdbShopStockMessage|null
      */
     public function &GetFieldShopStockMessage()
     {
@@ -2426,5 +2350,10 @@ class TShopArticle extends TShopArticleAutoParent implements ICMSSeoPatternItem,
     private function getProductVariantNameGenerator()
     {
         return ServiceLocator::get('chameleon_system_shop.product_variant.product_variant_name_generator');
+    }
+
+    private function getCache(): CacheInterface
+    {
+        return ServiceLocator::get('chameleon_system_cms_cache.cache');
     }
 }

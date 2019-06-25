@@ -9,6 +9,8 @@
  * file that was distributed with this source code.
  */
 
+use ChameleonSystem\CoreBundle\ServiceLocator;
+use ChameleonSystem\CoreBundle\Util\UrlUtil;
 use esono\pkgshoppaymenttransaction\PaymentHandlerWithTransactionSupportInterface;
 
 class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymentTransaction_TCMSTableEditorShopOrderAutoParent
@@ -76,7 +78,7 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
             );
         }
         $aParam = TGlobal::instance()->GetUserData(null, array('module_fnc', '_noModuleFunction'));
-        $sURL = URL_CMS_CONTROLLER.'?'.TTools::GetArrayAsURL($aParam);
+        $sURL = URL_CMS_CONTROLLER.'?'.$this->getUrlUtil()->getArrayAsUrl($aParam, '', '&');
         $this->getRedirect()->redirect($sURL);
     }
 
@@ -129,7 +131,7 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
             );
         }
         $aParam = TGlobal::instance()->GetUserData(null, array('module_fnc', '_noModuleFunction'));
-        $sURL = URL_CMS_CONTROLLER.'?'.TTools::GetArrayAsURL($aParam);
+        $sURL = URL_CMS_CONTROLLER.'?'.$this->getUrlUtil()->getArrayAsUrl($aParam, '', '&');
         $this->getRedirect()->redirect($sURL);
     }
 
@@ -150,6 +152,14 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
         $oOrder = $this->oTable;
 
         $oTransactionManager = new TPkgShopPaymentTransactionManager($oOrder);
+
+        if ($transactionValue < 0.0001) {
+            $oTransactionData = $oTransactionManager->getTransactionDataFromOrder($debitType, $aAmount);
+            $transactionValue = $oTransactionData->getTotalValue();
+            if ($transactionValue < 0) {
+                $transactionValue = 0;
+            }
+        }
 
         try {
             /** @var $paymentHandler PaymentHandlerWithTransactionSupportInterface|\TdbShopPaymentHandler */
@@ -198,7 +208,7 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
             );
         }
         $aParam = TGlobal::instance()->GetUserData(null, array('module_fnc', '_noModuleFunction', 'debitType'));
-        $sURL = URL_CMS_CONTROLLER.'?'.TTools::GetArrayAsURL($aParam);
+        $sURL = URL_CMS_CONTROLLER.'?'.$this->getUrlUtil()->getArrayAsUrl($aParam, '', '&');
         $this->getRedirect()->redirect($sURL);
     }
 
@@ -235,7 +245,7 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
         $oMenuItem = new TCMSTableEditorMenuItem();
         $oMenuItem->sItemKey = 'collectall';
         $oMenuItem->sDisplayName = TGlobal::Translate('chameleon_system_shop_payment_transaction.action.collect_all');
-        $oMenuItem->sIcon = TGlobal::GetStaticURLToWebLib('/images/icons/coins_add.png');
+        $oMenuItem->sIcon = 'fas fa-tasks';
 
         $sURL = URL_CMS_CONTROLLER.'?';
         $aParams = array(
@@ -247,7 +257,9 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
         );
         $sURL .= TTools::GetArrayAsURLForJavascript($aParams);
 
-        $oMenuItem->sOnClick = "if (true == confirm('".TGlobal::Translate('chameleon_system_shop_payment_transaction.confirm.collect_all')."')) {TPkgShopPaymentTransaction_closeForm();document.location.href='{$sURL}';}";
+        $oMenuItem->sOnClick = "if (true == confirm('".TGlobal::Translate(
+                'chameleon_system_shop_payment_transaction.confirm.collect_all'
+            )."')) {TPkgShopPaymentTransaction_closeForm();document.location.href='{$sURL}';}";
 
         return $oMenuItem;
     }
@@ -260,7 +272,7 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
         $oMenuItem = new TCMSTableEditorMenuItem();
         $oMenuItem->sItemKey = 'refundall';
         $oMenuItem->sDisplayName = TGlobal::Translate('chameleon_system_shop_payment_transaction.action.refund_all');
-        $oMenuItem->sIcon = TGlobal::GetStaticURLToWebLib('/images/icons/coins_delete.png');
+        $oMenuItem->sIcon = 'fas fa-undo-alt';
 
         $sURL = URL_CMS_CONTROLLER.'?';
         $aParams = array(
@@ -272,7 +284,9 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
         );
         $sURL .= TTools::GetArrayAsURLForJavascript($aParams);
 
-        $oMenuItem->sOnClick = "if (true == confirm('".TGlobal::Translate('chameleon_system_shop_payment_transaction.confirm.refund_all')."')) {TPkgShopPaymentTransaction_closeForm();document.location.href='{$sURL}'};";
+        $oMenuItem->sOnClick = "if (true == confirm('".TGlobal::Translate(
+                'chameleon_system_shop_payment_transaction.confirm.refund_all'
+            )."')) {TPkgShopPaymentTransaction_closeForm();document.location.href='{$sURL}'};";
 
         return $oMenuItem;
     }
@@ -284,8 +298,10 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
     {
         $oMenuItem = new TCMSTableEditorMenuItem();
         $oMenuItem->sItemKey = 'collectpartial';
-        $oMenuItem->sDisplayName = TGlobal::Translate('chameleon_system_shop_payment_transaction.action.collect_partial');
-        $oMenuItem->sIcon = TGlobal::GetStaticURLToWebLib('/images/icons/coins_add.png');
+        $oMenuItem->sDisplayName = TGlobal::Translate(
+            'chameleon_system_shop_payment_transaction.action.collect_partial'
+        );
+        $oMenuItem->sIcon = 'fas fa-undo-alt';
 
         $sURL = URL_CMS_CONTROLLER.'?';
         $aParams = array(
@@ -309,8 +325,10 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
     {
         $oMenuItem = new TCMSTableEditorMenuItem();
         $oMenuItem->sItemKey = 'refundpartial';
-        $oMenuItem->sDisplayName = TGlobal::Translate('chameleon_system_shop_payment_transaction.action.refund_partial');
-        $oMenuItem->sIcon = TGlobal::GetStaticURLToWebLib('/images/icons/coins_delete.png');
+        $oMenuItem->sDisplayName = TGlobal::Translate(
+            'chameleon_system_shop_payment_transaction.action.refund_partial'
+        );
+        $oMenuItem->sIcon = 'fas fa-undo-alt';
 
         $sURL = URL_CMS_CONTROLLER.'?';
         $aParams = array(
@@ -351,7 +369,9 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
     {
         $aIncludes = parent::GetHtmlHeadIncludes();
 
-        $aIncludesFromPackage = $this->getViewRendererSnippetDirectory()->getResourcesForSnippetPackage('pkgShopPaymentTransaction');
+        $aIncludesFromPackage = $this->getViewRendererSnippetDirectory()->getResourcesForSnippetPackage(
+            'pkgShopPaymentTransaction'
+        );
         $aIncludes = array_merge($aIncludes, $aIncludesFromPackage);
 
         return $aIncludes;
@@ -396,5 +416,10 @@ class TPkgShopPaymentTransaction_TCMSTableEditorShopOrder extends TPkgShopPaymen
     private function getRedirect()
     {
         return \ChameleonSystem\CoreBundle\ServiceLocator::get('chameleon_system_core.redirect');
+    }
+
+    private function getUrlUtil(): UrlUtil
+    {
+        return ServiceLocator::get('chameleon_system_core.util.url');
     }
 }

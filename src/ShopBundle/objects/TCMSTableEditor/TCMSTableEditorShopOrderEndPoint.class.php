@@ -9,6 +9,9 @@
  * file that was distributed with this source code.
  */
 
+use ChameleonSystem\CoreBundle\Service\PortalDomainServiceInterface;
+use ChameleonSystem\CoreBundle\ServiceLocator;
+
 class TCMSTableEditorShopOrderEndPoint extends TCMSTableEditor
 {
     /**
@@ -20,7 +23,7 @@ class TCMSTableEditorShopOrderEndPoint extends TCMSTableEditor
         $oMenuItem = new TCMSTableEditorMenuItem();
         $oMenuItem->sItemKey = 'sendordermail';
         $oMenuItem->sDisplayName = TGlobal::Translate('chameleon_system_shop.orders.action_send_order_confirm_mail');
-        $oMenuItem->sIcon = TGlobal::GetStaticURLToWebLib('/images/icons/email_go.png');
+        $oMenuItem->sIcon = 'fas fa-envelope';
 
         $oGlobal = TGlobal::instance();
         $sURL = PATH_CMS_CONTROLLER.'?';
@@ -92,7 +95,7 @@ class TCMSTableEditorShopOrderEndPoint extends TCMSTableEditor
         if (!empty($sMail) && is_object($this->oTable)) {
             $sPortalId = $this->oTable->fieldCmsPortalId;
             if (empty($this->oTable->fieldCmsPortalId)) {
-                $oPortal = TTools::GetActivePortal();
+                $oPortal = $this->getPortalDomainService()->getActivePortal();
                 $sPortalId = $oPortal->id;
             }
             $oAction = TdbPkgRunFrontendAction::CreateAction('TPkgRunFrontendAction_SendOrderEMail', $sPortalId, array('email' => $sMail, 'order_id' => $this->sId));
@@ -163,5 +166,10 @@ class TCMSTableEditorShopOrderEndPoint extends TCMSTableEditor
         }
 
         return $bReturn;
+    }
+
+    private function getPortalDomainService(): PortalDomainServiceInterface
+    {
+        return ServiceLocator::get('chameleon_system_core.portal_domain_service');
     }
 }

@@ -130,9 +130,9 @@ class TPkgShopPaymentIPN_TPkgShopPaymentHandlerGroup extends TPkgShopPaymentIPN_
         }
 
         if (null === $oTransaction) {
-            \ChameleonSystem\CoreBundle\ServiceLocator::get('cmsPkgCore.logChannel.standard')->warning(
+            \ChameleonSystem\CoreBundle\ServiceLocator::get('monolog.logger.order_payment_ipn')->warning(
                 "IPN had transaction data but no matching transaction was found. order-id: {$oOrder->id}, ordernumber: {$oOrder->fieldOrdernumber}",
-                __FILE__, __LINE__, array('request' => $oRequest->getRequestPayload())
+                array('request' => $oRequest->getRequestPayload())
             );
         }
     }
@@ -165,7 +165,7 @@ class TPkgShopPaymentIPN_TPkgShopPaymentHandlerGroup extends TPkgShopPaymentIPN_
      *
      * @param $aRequestData
      *
-     * @return null|TdbShopOrder
+     * @return TdbShopOrder|null
      */
     public function getOrderFromRequestData($aRequestData)
     {
@@ -188,7 +188,7 @@ class TPkgShopPaymentIPN_TPkgShopPaymentHandlerGroup extends TPkgShopPaymentIPN_
     /**
      * @param TPkgShopPaymentIPNRequest $oRequest
      *
-     * @return null|TdbPkgShopPaymentIpnStatus
+     * @return TdbPkgShopPaymentIpnStatus|null
      */
     public function getIPNStatus(TPkgShopPaymentIPNRequest $oRequest)
     {

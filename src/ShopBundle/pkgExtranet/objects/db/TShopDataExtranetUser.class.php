@@ -521,7 +521,6 @@ class TShopDataExtranetUser extends TShopDataExtranetUserAutoParent
                 $this->CommitNoticeListToCookie();
             }
         }
-        $this->CommitToSession();
     }
 
     /**
@@ -559,8 +558,8 @@ class TShopDataExtranetUser extends TShopDataExtranetUserAutoParent
     /**
      * return the total order value of the customer.
      *
-     * @param null|string $sStartDate
-     * @param null|string $sEndDate
+     * @param string|null $sStartDate
+     * @param string|null $sEndDate
      *
      * @return float
      */

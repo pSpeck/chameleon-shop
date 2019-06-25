@@ -17,14 +17,14 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     /**
      * article list loaded by module or something else that calls this class.
      *
-     * @var null|TIterator
+     * @var TIterator|null
      */
     protected $oArticleList = null;
 
     /**
      * absolute path to the cache file.
      *
-     * @var null|string
+     * @var string|null
      */
     protected $sCacheFile = null;
 
@@ -266,7 +266,7 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
      * @param array          $aAttributeNames
      * @param string         $sFieldName
      *
-     * @return null|array
+     * @return array|null
      */
     public function GetArticleAttributeValueListForAttributeNames(
         &$oArticle,
@@ -296,7 +296,7 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
      * @param string         $sFieldName
      * @param bool           $bReturnFirstOccurrence
      *
-     * @return null|string|array
+     * @return string|array|null
      */
     protected function GetArticleAttributeValueForAttributeName(
         &$oArticle,
@@ -445,20 +445,7 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     }
 
     /**
-     * returns true if the file is in cache and valid (not outdated)
-     * returns false if file is not in cache or cache element is invalid - need regeneration.
-     *
-     * @deprecated - 6.1.4 method is no longer used since caching was moved to the calling module.
-     *
-     * @return bool
-     */
-    protected function FileIsCached()
-    {
-        return false;
-    }
-
-    /**
-     * sends input to output buffer or to a file but only if a file to write was set via $this->SetFilePointer.
+     * sends input to output buffer.
      *
      * @param string $sInput
      */
@@ -489,14 +476,6 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function SetCacheFile($sCacheFile)
-    {
-        $this->sCacheFile = $sCacheFile;
-    }
-
-    /**
      * getter for $this->sCacheFile.
      *
      * @return string
@@ -507,14 +486,6 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function SetGenerateFile($bGenerateFile)
-    {
-        $this->bGenerateFile = $bGenerateFile;
-    }
-
-    /**
      * getter for $this->bGenerateFile.
      *
      * @return bool
@@ -522,31 +493,6 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     public function GetGenerateFile()
     {
         return $this->bGenerateFile;
-    }
-
-    /**
-     * setter for $this->fpFile.
-     *
-     * @param resource $fpFile
-     *
-     * @deprecated - 6.1.4 method is no longer used since caching was moved to the calling module.
-     */
-    public function SetFilePointer(&$fpFile)
-    {
-    }
-
-    /**
-     * getter for $this->fpFile.
-     *
-     * @return bool|resource
-     *
-     * @deprecated - 6.1.4 method is no longer used since caching was moved to the calling module.
-     */
-    public function &GetFilePointer()
-    {
-        $bool = false;
-
-        return $bool;
     }
 
     /**
@@ -603,7 +549,7 @@ class TPkgShopProductExportBaseEndPoint implements ShopProductExportHandlerInter
     /**
      * return list of all attributes (by default) to restrict this method overwrite.
      *
-     * @return null|array
+     * @return array|null
      */
     public function GetAllowedAttributes()
     {

@@ -20,6 +20,7 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
 {
     const VIEW_PATH = '/pkgShop/views/db/TShopCategory';
     const FILTER_KEY_NAME = 'cattreeid';
+    const PRODUCTS_PAGE_SYSTEM_NAME = 'products';
 
     /**
      * return the vat group of the category.
@@ -62,45 +63,27 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
         }
         $sLink = $this->GetFromInternalCache($sInternalCacheKey);
         if (is_null($sLink)) {
-            $oShop = $this->getShopService()->getActiveShop();
-            $oNaviNodeFound = null;
-            if (method_exists($oShop, 'GetFieldShopPrimaryNaviList')) {
-                $oNaviNodes = $oShop->GetFieldShopPrimaryNaviList();
-                $oNaviNodeFound = $oNaviNodes->FindItemWithProperty('fieldShopCategoryId', $this->id);
-                if (empty($oNaviNodeFound->fieldContentNode)) {
-                    $oNaviNodeFound = null;
-                }
-            }
-            if (!is_null($oNaviNodeFound) && !empty($oNaviNodeFound->fieldContentNode)) {
-                $treeService = static::getTreeService();
-                $oTreeNode = $treeService->getById($oNaviNodeFound->fieldContentNode);
+            try {
                 if ($bAbsolute) {
-                    $sLink = $treeService->getLinkToPageForTreeAbsolute($oTreeNode, array(), $language);
+                    $sPageLink = $this->getSystemPageService()->getLinkToSystemPageAbsolute(self::PRODUCTS_PAGE_SYSTEM_NAME, array(), $portal, $language);
                 } else {
-                    $sLink = $treeService->getLinkToPageForTreeRelative($oTreeNode, array(), $language);
+                    $sPageLink = $this->getSystemPageService()->getLinkToSystemPageRelative(self::PRODUCTS_PAGE_SYSTEM_NAME, array(), $portal, $language);
                 }
-            } else {
-                try {
-                    if ($bAbsolute) {
-                        $sPageLink = $this->getSystemPageService()->getLinkToSystemPageAbsolute('products', array(), $portal, $language);
-                    } else {
-                        $sPageLink = $this->getSystemPageService()->getLinkToSystemPageRelative('products', array(), $portal, $language);
-                    }
-                    if ('.html' === substr($sPageLink, -5)) {
-                        $sPageLink = substr($sPageLink, 0, -5).'/';
-                    }
-                    if ('/' === substr($sPageLink, -1)) {
-                        $sPageLink = substr($sPageLink, 0, -1);
-                    }
-                } catch (RouteNotFoundException $e) {
-                    $sPageLink = '';
+                if ('.html' === substr($sPageLink, -5)) {
+                    $sPageLink = substr($sPageLink, 0, -5).'/';
                 }
-                $sCatUrl = $this->GetURLPath();
-                if ('/' !== substr($sCatUrl, 0, 1)) {
-                    $sCatUrl = '/'.$sCatUrl;
+                if ('/' === substr($sPageLink, -1)) {
+                    $sPageLink = substr($sPageLink, 0, -1);
                 }
-                $sLink = $sPageLink.$sCatUrl;
+            } catch (RouteNotFoundException $e) {
+                $sPageLink = '';
             }
+            $sCatUrl = $this->GetURLPath();
+            if ('/' !== substr($sCatUrl, 0, 1)) {
+                $sCatUrl = '/'.$sCatUrl;
+            }
+            $sLink = $sPageLink.$sCatUrl;
+
             if (null === $portal) {
                 $portal = $this->getPortalDomainService()->getActivePortal();
             }
@@ -394,43 +377,6 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
     /* SECTION: CACHE RELEVANT METHODS FOR THE RENDER METHOD
 
     /**
-     * Add view based clear cache triggers for the Render method here
-     *
-     * @param array $aClearTriggers - clear trigger array (with current contents)
-     * @param string $sViewName - view being requested
-     * @param string $sViewType - location of the view (Core, Custom-Core, Customer)
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function AddClearCacheTriggers(&$aClearTriggers, $sViewName, $sViewType)
-    {
-    }
-
-    /**
-     * used to set the id of a clear cache (ie. related table).
-     *
-     * @param string $sTableName - the table name
-     *
-     * @return int|null|string
-     *
-     * @deprecated since 6.2.0 - no longer used.
-     */
-    protected function GetClearCacheTriggerTableValue($sTableName)
-    {
-        $sValue = '';
-        switch ($sTableName) {
-            case $this->table:
-                $sValue = $this->id;
-                break;
-
-            default:
-                break;
-        }
-
-        return $sValue;
-    }
-
-    /**
      * returns an array with all table names that are relevant for the render function.
      *
      * @param string $sViewName - the view name being requested (if know by the caller)
@@ -479,21 +425,6 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
         }
 
         return $sDesc;
-    }
-
-    /**
-     * returns count of articles found in category
-     * if $bRecursive is true, then this check walks down the category tree recursively.
-     *
-     * @param bool $bRecursive
-     *
-     * @return int - number of articles found in category
-     *
-     * @deprecated since 6.2.0 - use GetNumberOfArticlesInCategory() instead.
-     */
-    protected function NumberOfArticlesInCategory($bRecursive = false)
-    {
-        return $this->GetNumberOfArticlesInCategory($bRecursive);
     }
 
     /**
@@ -623,7 +554,7 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
     }
 
     /**
-     * @return TdbCmsTplPage
+     * @return TdbCmsTplPage|null
      */
     public function getTargetPage()
     {
@@ -648,8 +579,17 @@ class TShopCategory extends TShopCategoryAutoParent implements ICMSSeoPatternIte
             if (null === $activePortal) {
                 return null;
             }
-            $targetPageId = $activePortal->GetSystemPageId('products');
-            $defaultPage = TdbCmsTplPage::GetNewInstance($targetPageId);
+
+            $systemPageService = $this->getSystemPageService();
+            $defaultSystemPage = $systemPageService->getSystemPage(self::PRODUCTS_PAGE_SYSTEM_NAME, $activePortal);
+
+            if (null === $defaultSystemPage) {
+                return null;
+            }
+
+            $pageService = self::getPageService();
+            $defaultPage = $pageService->getById($defaultSystemPage->id);
+
             $targetPage = $defaultPage;
         }
 
